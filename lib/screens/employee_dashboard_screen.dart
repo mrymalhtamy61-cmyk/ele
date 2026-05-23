@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/mock_data_service.dart';
+import '../services/firestore_service.dart';
 import '../models/subscriber.dart';
 import 'login_screen.dart';
-import '../theme/app_theme.dart';
 
 class EmployeeDashboardScreen extends StatefulWidget {
   const EmployeeDashboardScreen({super.key});
@@ -19,7 +18,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
   bool _hasSearched = false;
 
   void _searchUser() {
-    final service = Provider.of<MockDataService>(context, listen: false);
+    final service = Provider.of<FirestoreService>(context, listen: false);
     final query = _searchController.text.trim();
     
     if (query.isEmpty) return;
@@ -89,17 +88,25 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-            onPressed: () {
-              final readingVal = double.tryParse(readingController.text);
+            onPressed: () async {
+              String inputText = readingController.text.trim();
+              const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+              const englishNumbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'];
+              for (int i = 0; i < arabicNumbers.length; i++) {
+                inputText = inputText.replaceAll(arabicNumbers[i], englishNumbers[i]);
+              }
+
+              final readingVal = double.tryParse(inputText);
               if (readingVal != null) {
                 try {
-                  Provider.of<MockDataService>(context, listen: false).addReadingForUser(
+                  await Provider.of<FirestoreService>(context, listen: false).addReadingForUser(
                     user.subscriberId,
                     readingVal,
                     month,
                     year,
                   );
-                  Navigator.pop(context);
+                  if (context.mounted) {
+                    Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text(
@@ -110,11 +117,18 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
                         behavior: SnackBarBehavior.floating,
                       ),
                     );
+                  }
                 } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(e.toString(), style: GoogleFonts.cairo()), backgroundColor: Colors.red),
-                  );
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(e.toString().replaceAll('Exception: ', ''), style: GoogleFonts.cairo()), backgroundColor: Colors.red),
+                    );
+                  }
                 }
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('الرجاء إدخال رقم صحيح', style: GoogleFonts.cairo()), backgroundColor: Colors.orange),
+                );
               }
             },
             child: const Text('حفظ القراءة'),
@@ -125,7 +139,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
   }
 
   void _logout() {
-    Provider.of<MockDataService>(context, listen: false).logout();
+    Provider.of<FirestoreService>(context, listen: false).logout();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -134,7 +148,7 @@ class _EmployeeDashboardScreenState extends State<EmployeeDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = Provider.of<MockDataService>(context).currentUser;
+    final currentUser = Provider.of<FirestoreService>(context).currentUser;
 
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,

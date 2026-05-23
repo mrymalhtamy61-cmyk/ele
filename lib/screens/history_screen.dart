@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/mock_data_service.dart';
+import '../services/firestore_service.dart';
 import '../models/reading.dart';
 
 class HistoryScreen extends StatelessWidget {
@@ -8,7 +8,7 @@ class HistoryScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final readings = Provider.of<MockDataService>(context).readings;
+    final readings = Provider.of<FirestoreService>(context).readings;
     
     // Sort descending by year then month
     final sortedReadings = List<Reading>.from(readings)

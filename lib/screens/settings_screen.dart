@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../providers/theme_provider.dart';
-import '../services/mock_data_service.dart';
-import '../theme/app_theme.dart';
+import '../services/firestore_service.dart';
 import 'login_screen.dart';
 
 class SettingsScreen extends StatelessWidget {
@@ -12,9 +11,8 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final themeProvider = Provider.of<ThemeProvider>(context);
-    final mockService = Provider.of<MockDataService>(context);
+    final mockService = Provider.of<FirestoreService>(context);
     final currentUser = mockService.currentUser;
-    final isDarkMode = themeProvider.isDarkMode;
 
     return Scaffold(
       appBar: AppBar(
@@ -154,7 +152,7 @@ class SettingsScreen extends StatelessWidget {
             const SizedBox(height: 32),
             ElevatedButton.icon(
               onPressed: () {
-                Provider.of<MockDataService>(context, listen: false).logout();
+                Provider.of<FirestoreService>(context, listen: false).logout();
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => const LoginScreen()),

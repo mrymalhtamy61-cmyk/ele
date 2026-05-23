@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/mock_data_service.dart';
+import '../services/firestore_service.dart';
 import '../models/subscriber.dart';
 import 'employee_dashboard_screen.dart';
 import 'admin_dashboard_screen.dart';
@@ -29,11 +29,13 @@ class _LoginScreenState extends State<LoginScreen> {
       
       if (!mounted) return;
       
-      final authService = Provider.of<MockDataService>(context, listen: false);
-      final success = authService.login(_idController.text.trim(), _phoneController.text.trim());
+      final authService = Provider.of<FirestoreService>(context, listen: false);
+      final success = await authService.login(_idController.text.trim(), _phoneController.text.trim());
       
       setState(() => _isLoading = false);
       
+      if (!mounted) return;
+
       if (success) {
         final user = authService.currentUser;
         Widget nextScreen;

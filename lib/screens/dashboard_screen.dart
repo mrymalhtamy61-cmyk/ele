@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/mock_data_service.dart';
+import '../services/firestore_service.dart';
 import 'login_screen.dart';
 import '../models/reading.dart';
-import '../theme/app_theme.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -17,16 +16,97 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
 
   void _logout() {
-    Provider.of<MockDataService>(context, listen: false).logout();
+    Provider.of<FirestoreService>(context, listen: false).logout();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
     );
   }
 
+  void _showNotificationsSheet(BuildContext context, FirestoreService service) {
+    service.markAllNotificationsRead();
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Consumer<FirestoreService>(
+          builder: (ctx2, svc, _) {
+            final notifications = svc.notifications;
+            return Container(
+              padding: const EdgeInsets.all(24),
+              constraints: BoxConstraints(maxHeight: MediaQuery.of(context).size.height * 0.6),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('الإشعارات', style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold)),
+                      if (notifications.isNotEmpty)
+                        TextButton(
+                          onPressed: () {
+                            svc.clearNotifications();
+                            Navigator.pop(ctx2);
+                          },
+                          child: Text('مسح الكل', style: GoogleFonts.cairo(color: Colors.red)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  if (notifications.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(32.0),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Icon(Icons.notifications_off_outlined, size: 48, color: Colors.grey.shade400),
+                            const SizedBox(height: 12),
+                            Text('لا توجد إشعارات', style: GoogleFonts.cairo(color: Colors.grey)),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    Flexible(
+                      child: ListView.separated(
+                        shrinkWrap: true,
+                        itemCount: notifications.length,
+                        separatorBuilder: (context, index) => const Divider(),
+                        itemBuilder: (ctx3, index) {
+                          final notif = notifications[index];
+                          final isSadad = notif.title.contains('سداد');
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: CircleAvatar(
+                              backgroundColor: isSadad
+                                  ? Colors.green.withValues(alpha: 0.1)
+                                  : Colors.orange.withValues(alpha: 0.1),
+                              child: Icon(
+                                isSadad ? Icons.check_circle : Icons.receipt_long,
+                                color: isSadad ? Colors.green : Colors.orange,
+                              ),
+                            ),
+                            title: Text(notif.title, style: GoogleFonts.cairo(fontWeight: FontWeight.bold, fontSize: 14)),
+                            subtitle: Text(notif.body, style: GoogleFonts.cairo(fontSize: 12)),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final mockService = Provider.of<MockDataService>(context);
+    final mockService = Provider.of<FirestoreService>(context);
     final currentUser = mockService.currentUser;
     final latestReading = mockService.latestReading;
     final readings = mockService.readings;
@@ -36,6 +116,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: Text('لوحة المعلومات', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
         actions: [
+          Consumer<FirestoreService>(
+            builder: (context, service, _) {
+              final unreadCount = service.unreadNotificationsCount;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.notifications_outlined),
+                    onPressed: () => _showNotificationsSheet(context, service),
+                  ),
+                  if (unreadCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: Colors.red,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '$unreadCount',
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.logout_rounded),
             onPressed: _logout,

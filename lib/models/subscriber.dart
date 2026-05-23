@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
 enum UserRole { citizen, employee, admin }
 
 class Subscriber {
@@ -18,4 +20,36 @@ class Subscriber {
     required this.meterNumber,
     this.role = UserRole.citizen,
   });
+
+  factory Subscriber.fromFirestore(DocumentSnapshot doc) {
+    Map data = doc.data() as Map<String, dynamic>;
+    
+    UserRole parsedRole = UserRole.citizen;
+    if (data['role'] == 'employee') {
+      parsedRole = UserRole.employee;
+    } else if (data['role'] == 'admin') {
+      parsedRole = UserRole.admin;
+    }
+
+    return Subscriber(
+      subscriberId: doc.id,
+      subscriberName: data['subscriberName'] ?? '',
+      phone: data['phone'] ?? '',
+      address: data['address'] ?? '',
+      email: data['email'] ?? '',
+      meterNumber: data['meterNumber'] ?? '',
+      role: parsedRole,
+    );
+  }
+
+  Map<String, dynamic> toFirestore() {
+    return {
+      'subscriberName': subscriberName,
+      'phone': phone,
+      'address': address,
+      'email': email,
+      'meterNumber': meterNumber,
+      'role': role.name,
+    };
+  }
 }

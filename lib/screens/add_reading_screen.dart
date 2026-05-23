@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../services/mock_data_service.dart';
+import '../services/firestore_service.dart';
 
 class AddReadingScreen extends StatefulWidget {
   const AddReadingScreen({super.key});
@@ -20,7 +20,7 @@ class _AddReadingScreenState extends State<AddReadingScreen> {
   void _submitReading() {
     if (_formKey.currentState!.validate()) {
       try {
-        final mockService = Provider.of<MockDataService>(context, listen: false);
+        final mockService = Provider.of<FirestoreService>(context, listen: false);
         double currentReading = double.parse(_readingController.text);
         
         mockService.addReading(currentReading, _selectedMonth, _selectedYear);
@@ -42,7 +42,7 @@ class _AddReadingScreenState extends State<AddReadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final latestReading = Provider.of<MockDataService>(context, listen: false).latestReading;
+    final latestReading = Provider.of<FirestoreService>(context, listen: false).latestReading;
     final previousReading = latestReading?.currentReading ?? 0.0;
 
     return Scaffold(

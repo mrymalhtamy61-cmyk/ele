@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "598528198817",
+    "project_id": "electricitytracker-96a47",
+    "storage_bucket": "electricitytracker-96a47.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:598528198817:android:2bd03dc7b28af73443c8e0",
+        "android_client_info": {
+          "package_name": "com.example.electricity_tracker"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALtTRNm0XwVaJz7I4Ud2lV0KwYiF4P5q0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

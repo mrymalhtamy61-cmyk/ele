@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../services/mock_data_service.dart';
+import '../services/firestore_service.dart';
 import '../models/subscriber.dart';
 import 'login_screen.dart';
 import 'settings_screen.dart';
@@ -19,7 +19,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int _currentIndex = 0;
 
   void _logout(BuildContext context) {
-    Provider.of<MockDataService>(context, listen: false).logout();
+    Provider.of<FirestoreService>(context, listen: false).logout();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -71,8 +71,8 @@ class _OverviewTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mockService = Provider.of<MockDataService>(context);
-    final allUsers = mockService.allUsers;
+    final mockService = Provider.of<FirestoreService>(context);
+
     final citizens = mockService.citizens;
     final readings = mockService.readings;
 
@@ -136,59 +136,31 @@ class _OverviewTab extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 32),
-          Text(
-            'المستخدمين',
-            style: GoogleFonts.cairo(fontSize: 20, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
+          // === Admin Section ===
+          _buildUserSection(
+            context,
+            title: 'الإدارة',
+            icon: Icons.admin_panel_settings_rounded,
+            color: const Color(0xFFEF4444),
+            users: mockService.admins,
           ),
-          const SizedBox(height: 16),
-          Card(
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: allUsers.length,
-              separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade200),
-              itemBuilder: (context, index) {
-                final user = allUsers[index];
-                IconData roleIcon;
-                Color roleColor;
-                String roleName;
-                
-                switch (user.role) {
-                  case UserRole.admin:
-                    roleIcon = Icons.admin_panel_settings_rounded;
-                    roleColor = const Color(0xFFEF4444);
-                    roleName = 'إدارة';
-                    break;
-                  case UserRole.employee:
-                    roleIcon = Icons.badge_rounded;
-                    roleColor = Theme.of(context).colorScheme.secondary;
-                    roleName = 'موظف';
-                    break;
-                  case UserRole.citizen:
-                    roleIcon = Icons.person_rounded;
-                    roleColor = const Color(0xFF10B981);
-                    roleName = 'مشترك';
-                    break;
-                }
-
-                return ListTile(
-                  leading: CircleAvatar(
-                    backgroundColor: roleColor.withValues(alpha: 0.15),
-                    child: Icon(roleIcon, color: roleColor),
-                  ),
-                  title: Text(user.subscriberName, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
-                  subtitle: Text('الرقم: ${user.meterNumber} | الجوال: ${user.phone}', style: GoogleFonts.cairo(fontSize: 12)),
-                  trailing: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: roleColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(roleName, style: GoogleFonts.cairo(color: roleColor, fontSize: 12, fontWeight: FontWeight.bold)),
-                  ),
-                );
-              },
-            ),
+          const SizedBox(height: 24),
+          // === Employees Section ===
+          _buildUserSection(
+            context,
+            title: 'الموظفون',
+            icon: Icons.badge_rounded,
+            color: Theme.of(context).colorScheme.secondary,
+            users: mockService.employees,
+          ),
+          const SizedBox(height: 24),
+          // === Citizens Section ===
+          _buildCitizensSection(
+            context,
+            title: 'المشتركون',
+            icon: Icons.person_rounded,
+            color: const Color(0xFF10B981),
+            users: citizens,
           ),
         ],
       ),
@@ -228,6 +200,105 @@ class _OverviewTab extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildUserSection(BuildContext context, {required String title, required IconData icon, required Color color, required List<Subscriber> users}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              '$title (${users.length})',
+              style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (users.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Center(child: Text('لا يوجد', style: GoogleFonts.cairo(color: Theme.of(context).textTheme.bodyMedium?.color))),
+            ),
+          )
+        else
+          Card(
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: users.length,
+              separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade200),
+              itemBuilder: (context, index) {
+                final user = users[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: color.withValues(alpha: 0.15),
+                    child: Icon(icon, color: color),
+                  ),
+                  title: Text(user.subscriberName, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                  subtitle: Text('الرقم: ${user.meterNumber} | الجوال: ${user.phone}', style: GoogleFonts.cairo(fontSize: 12)),
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildCitizensSection(BuildContext context, {required String title, required IconData icon, required Color color, required List<Subscriber> users}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: color, size: 22),
+            const SizedBox(width: 8),
+            Text(
+              '$title (${users.length})',
+              style: GoogleFonts.cairo(fontSize: 18, fontWeight: FontWeight.bold, color: Theme.of(context).textTheme.bodyLarge?.color),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        if (users.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Center(child: Text('لا يوجد', style: GoogleFonts.cairo(color: Theme.of(context).textTheme.bodyMedium?.color))),
+            ),
+          )
+        else
+          Card(
+            child: ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: users.length,
+              separatorBuilder: (context, index) => Divider(height: 1, color: Colors.grey.shade200),
+              itemBuilder: (context, index) {
+                final user = users[index];
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: color.withValues(alpha: 0.15),
+                    child: Icon(icon, color: color),
+                  ),
+                  title: Text(user.subscriberName, style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                  subtitle: Text('الرقم: ${user.meterNumber} | الجوال: ${user.phone}', style: GoogleFonts.cairo(fontSize: 12)),
+                  trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+                  onTap: () {
+                    showDialog(
+                      context: context,
+                      builder: (context) => _UserReadingsDialog(user: user),
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+      ],
+    );
+  }
 }
 
 class _AddCitizenTab extends StatefulWidget {
@@ -247,7 +318,7 @@ class _AddCitizenTabState extends State<_AddCitizenTab> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      Provider.of<MockDataService>(context, listen: false).addCitizen(
+      Provider.of<FirestoreService>(context, listen: false).addCitizen(
         name: _nameController.text.trim(),
         meterNumber: _meterController.text.trim(),
         phone: _phoneController.text.trim(),
@@ -350,7 +421,7 @@ class _AddEmployeeTabState extends State<_AddEmployeeTab> {
 
   void _submit() {
     if (_formKey.currentState!.validate()) {
-      Provider.of<MockDataService>(context, listen: false).addEmployee(
+      Provider.of<FirestoreService>(context, listen: false).addEmployee(
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
         empId: _empIdController.text.trim(),
@@ -420,6 +491,86 @@ class _AddEmployeeTabState extends State<_AddEmployeeTab> {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _UserReadingsDialog extends StatelessWidget {
+  final Subscriber user;
+  const _UserReadingsDialog({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    final service = Provider.of<FirestoreService>(context);
+    final userReadings = service.readings.where((r) => r.subscriberId == user.subscriberId).toList();
+    
+    userReadings.sort((a, b) {
+      if (a.year == b.year) {
+        return b.month.compareTo(a.month);
+      }
+      return b.year.compareTo(a.year);
+    });
+
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      title: Text('فواتير ${user.subscriberName}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (userReadings.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Text('لا توجد فواتير لهذا المشترك', style: GoogleFonts.cairo()),
+              )
+            else
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: userReadings.length,
+                  separatorBuilder: (context, index) => const Divider(),
+                  itemBuilder: (context, index) {
+                    final reading = userReadings[index];
+                    final isPaid = reading.paymentStatus == 'مدفوعة';
+                    return ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('شهر ${reading.month} / ${reading.year}', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+                      subtitle: Text('الاستهلاك: ${reading.consumption} kWh\nالمبلغ: ${reading.amount} ر.ي', style: GoogleFonts.cairo(fontSize: 12)),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            reading.paymentStatus,
+                            style: GoogleFonts.cairo(
+                              color: isPaid ? Colors.green : Colors.red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Switch(
+                            value: isPaid,
+                            activeThumbColor: Colors.green,
+                            onChanged: (val) {
+                              final newStatus = val ? 'مدفوعة' : 'غير مدفوعة';
+                              service.updatePaymentStatus(reading.readingId, newStatus);
+                            },
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('إغلاق', style: GoogleFonts.cairo(fontWeight: FontWeight.bold)),
+        ),
+      ],
     );
   }
 }
